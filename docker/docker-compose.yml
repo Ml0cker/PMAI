@@ -1,0 +1,178 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pmai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pmai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmai_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-pmai}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+        -c shared_buffers=128MB
+        -c effective_cache_size=512MB
+        -c max_connections=30
+        -c work_mem=4MB
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pmai']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Not exposed to the internet — only accessible within Docker network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pmai-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Not exposed to the internet
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: pmai-api
+    restart: unless-stopped
+    expose:
+      - '4000'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      LOG_LEVEL: info
+      FRONTEND_URL: ${DOMAIN:-http://localhost:3000}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      BAGS_MINT_ADDRESS: ${BAGS_MINT_ADDRESS}
+      PLATFORM_WALLET_ADDRESS: ${PLATFORM_WALLET_ADDRESS}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: pmai-frontend
+    restart: unless-stopped
+    expose:
+      - '3000'
+    environment:
+      NEXT_PUBLIC_API_URL: ''
+      NEXT_PUBLIC_WS_URL: ''
+      NEXT_PUBLIC_SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      - api
+
+  worker-polymarket:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker-polymarket
+    container_name: pmai-worker-polymarket
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      LOG_LEVEL: info
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-ai:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker-ai
+    container_name: pmai-worker-ai
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      LOG_LEVEL: info
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-solana:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker-solana
+    container_name: pmai-worker-solana
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      LOG_LEVEL: info
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      BAGS_MINT_ADDRESS: ${BAGS_MINT_ADDRESS}
+      PLATFORM_WALLET_ADDRESS: ${PLATFORM_WALLET_ADDRESS}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: pmai-caddy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    depends_on:
+      - frontend
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

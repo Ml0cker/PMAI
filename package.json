@@ -1,0 +1,41 @@
+{
+  "name": "pmai",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "apps/frontend/*",
+    "workers/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:worker:polymarket": "npm run dev -w workers/polymarket",
+    "dev:worker:ai": "npm run dev -w workers/ai",
+    "dev:worker:solana": "npm run dev -w workers/solana",
+    "build": "npm run build -w packages/shared -w packages/db && npm run build -w apps/api && npm run build -w apps/frontend",
+    "db:generate": "npm run generate -w packages/db",
+    "db:migrate": "npm run migrate -w packages/db",
+    "db:push": "npm run push -w packages/db",
+    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "docker:build": "docker compose -f docker/docker-compose.yml build",
+    "deploy": "git push origin main",
+    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w packages/db && npm run typecheck -w apps/api && npm run typecheck -w apps/frontend"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

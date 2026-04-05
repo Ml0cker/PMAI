@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); text=data[0]['text']; print\\(text[:15000]\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); process.stdout.write\\(d[0].text.slice\\(0,20000\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); process.stdout.write\\(d[0].text.slice\\(20000,40000\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); process.stdout.write\\(d[0].text.slice\\(40000,60000\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); process.stdout.write\\(d[0].text.slice\\(60000,80000\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); process.stdout.write\\(d[0].text.slice\\(80000,100000\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); process.stdout.write\\(d[0].text.slice\\(100000\\)\\)\")",
+      "Bash(npm install:*)",
+      "Bash(rm -f package-lock.json)",
+      "Bash(cmd.exe /c \"rmdir /s /q node_modules\")",
+      "Bash(cmd.exe /c \"rmdir /s /q node_modules 2>nul & timeout /t 1 /nobreak >nul & rmdir /s /q node_modules 2>nul\")",
+      "Bash(docker --version)",
+      "Bash(docker compose:*)",
+      "Bash(docker info:*)",
+      "Bash(break)"
+    ]
+  }
+}

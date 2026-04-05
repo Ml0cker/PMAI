@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  wallets           Wallet[]
+  predictions       Prediction[]
+  predictionRequests PredictionRequest[]
+  tokenDeposits     TokenDeposit[]
+  transactionLogs   TransactionLog[]
+
+  @@index([createdAt])
+}
+
+model Wallet {
+  id              String   @id @default(cuid())
+  userId          String
+  address         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenDeposits   TokenDeposit[]
+  transactionLogs TransactionLog[]
+
+  @@unique([userId, address])
+  @@index([address])
+}
+
+model Event {
+  id          String   @id
+  title       String
+  slug        String   @unique
+  category    String?
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  imageUrl    String?
+  active      Boolean  @default(true)
+  closed      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  markets Market[]
+
+  @@index([category])
+  @@index([active])
+  @@index([closed])
+  @@index([createdAt])
+}
+
+model Market {
+  id              String   @id
+  eventId         String
+  question        String
+  slug            String   @unique
+  outcomes        Json
+  clobTokenIds    Json
+  outcomePrices   Json
+  volume24hr      Float?
+  volume          Float?
+  liquidity       Float?
+  active          Boolean  @default(true)
+  closed          Boolean  @default(false)
+  resolvedAt      DateTime?
+  winningOutcome  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  event              Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  snapshots          MarketSnapshot[]
+  predictions        Prediction[]
+  predictionRequests PredictionRequest[]
+
+  @@index([eventId])
+  @@index([active])
+  @@index([closed])
+  @@index([volume24hr(sort: Desc)])
+  @@index([createdAt])
+}
+
+model MarketSnapshot {
+  id            String   @id @default(cuid())
+  marketId      String
+  outcomePrices Json
+  volume24hr    Float?
+  volume        Float?
+  liquidity     Float?
+  recordedAt    DateTime @default(now())
+
+  market        Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId, recordedAt(sort: Desc)])
+}
+
+model PredictionRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  marketId        String
+  status          String   @default("pending")
+  tokenAmount     Int
+  burnSignature   String?
+  burnStatus      String   @default("pending")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  market     Market     @relation(fields: [marketId], references: [id])
+  prediction Prediction?
+
+  @@unique([userId, marketId, createdAt])
+  @@index([status])
+  @@index([userId])
+  @@index([marketId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Prediction {
+  id              String   @id @default(cuid())
+  requestId       String   @unique
+  userId          String
+  marketId        String
+  prediction      String
+  confidence      Float
+  reasoning       Json
+  modelVersion    String
+  createdAt       DateTime @default(now())
+
+  request   PredictionRequest @relation(fields: [requestId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+  market    Market            @relation(fields: [marketId], references: [id])
+
+  @@index([userId])
+  @@index([marketId])
+  @@index([prediction])
+  @@index([createdAt(sort: Desc)])
+}
+
+model TokenDeposit {
+  id                    String    @id @default(cuid())
+  userId                String
+  walletId              String
+  transactionSignature  String
+  amount                Int
+  status                String    @default("pending")
+  verifiedAt            DateTime?
+  createdAt             DateTime  @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  wallet  Wallet  @relation(fields: [walletId], references: [id])
+
+  @@unique([transactionSignature])
+  @@index([userId])
+  @@index([walletId])
+  @@index([status])
+}
+
+model TransactionLog {
+  id                    String    @id @default(cuid())
+  userId                String?
+  walletId              String?
+  type                  String
+  transactionSignature  String
+  amount                Int?
+  status                String
+  metadata              Json?
+  createdAt             DateTime  @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  wallet  Wallet?  @relation(fields: [walletId], references: [id])
+
+  @@unique([transactionSignature])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
