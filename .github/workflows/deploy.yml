@@ -15,25 +15,33 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          command_timeout: 8m
           script: |
             cd /opt/pmai
 
             echo ">>> Pulling latest code..."
             git pull origin main
 
+            # Use docker-compose or docker compose depending on what's installed
+            if command -v docker-compose &> /dev/null; then
+              COMPOSE="docker-compose -f docker/docker-compose.yml"
+            else
+              COMPOSE="docker compose -f docker/docker-compose.yml"
+            fi
+
             echo ">>> Building and restarting..."
-            docker compose -f docker/docker-compose.yml build
-            docker compose -f docker/docker-compose.yml up -d
+            $COMPOSE build
+            $COMPOSE up -d
 
             echo ">>> Waiting for API to be healthy..."
             sleep 10
 
             echo ">>> Running DB migrations..."
-            docker compose -f docker/docker-compose.yml exec -T api \
+            $COMPOSE exec -T api \
               npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss 2>/dev/null || true
 
             echo ">>> Cleaning old images..."
             docker image prune -f
 
             echo ">>> Done!"
-            docker compose -f docker/docker-compose.yml ps
+            $COMPOSE ps
