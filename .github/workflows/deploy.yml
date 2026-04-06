@@ -43,6 +43,9 @@ jobs:
             echo ">>> Pulling latest code..."
             git pull origin main
 
+            echo ">>> Copying .env to docker directory..."
+            cp .env docker/.env
+
             # Use docker-compose or docker compose depending on what's installed
             if command -v docker-compose &> /dev/null; then
               COMPOSE="docker-compose -f docker/docker-compose.yml"
@@ -51,16 +54,19 @@ jobs:
             fi
 
             echo ">>> Stopping containers..."
-            $COMPOSE down
+            $COMPOSE down || true
 
             echo ">>> Building images..."
-            $COMPOSE build --no-cache
+            $COMPOSE build --no-cache || exit 1
 
             echo ">>> Starting containers..."
-            $COMPOSE up -d
+            $COMPOSE up -d || exit 1
 
             echo ">>> Waiting for services to be healthy..."
-            sleep 15
+            sleep 20
+
+            echo ">>> Checking container status..."
+            $COMPOSE ps
 
             echo ">>> Running DB migrations..."
             $COMPOSE exec -T api \
