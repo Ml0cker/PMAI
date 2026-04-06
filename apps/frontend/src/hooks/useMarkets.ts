@@ -105,6 +105,7 @@ export function useMarkets(params: { category?: string; sort?: string } = {}) {
     setAllMarkets([]);
     setTotal(0);
     setHasFetched(false);
+    setIsLoadingMore(false);
     stableMarkets = [];
     stableTotal = 0;
     stableHasFetched = false;
@@ -142,7 +143,7 @@ export function useMarkets(params: { category?: string; sort?: string } = {}) {
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, loadMore]);
 
-  const isInitialLoading = isLoading || (!hasFetched && !error);
+  const isInitialLoading = (isLoading && !hasFetched) || (!data && !error && !hasFetched);
 
   return {
     markets: allMarkets,
