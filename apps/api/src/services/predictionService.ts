@@ -193,4 +193,29 @@ export class PredictionService {
       },
     };
   }
+
+  async getPredictionByRequestId(requestId: string) {
+    const request = await prisma.predictionRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!request) return null;
+
+    const prediction = await prisma.prediction.findFirst({
+      where: { requestId },
+      include: {
+        market: { select: { question: true, slug: true, outcomes: true, outcomePrices: true } },
+      },
+    });
+
+    return {
+      id: request.id,
+      status: request.status,
+      prediction: prediction ? {
+        prediction: prediction.prediction,
+        confidence: prediction.confidence,
+        reasoning: parseJsonField<string[]>(prediction.reasoning),
+      } : null,
+    };
+  }
 }

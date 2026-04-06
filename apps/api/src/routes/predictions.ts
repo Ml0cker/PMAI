@@ -136,4 +136,16 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+router.get('/request/:requestId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await predictionService.getPredictionByRequestId(req.params.requestId as string);
+    if (!result) {
+      throw new AppError(ErrorCode.PREDICTION_NOT_FOUND, 'Prediction request not found', 404);
+    }
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export { router as predictionsRouter };

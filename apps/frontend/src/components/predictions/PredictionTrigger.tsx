@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { apiClient } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
+import { PaymentButton } from '@/components/wallet/PaymentButton';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 interface Market {
   id: string;
@@ -14,13 +16,16 @@ interface PredictionTriggerProps {
   market: Market;
 }
 
+const TOKEN_COST = 1; // 1 BAGS token per prediction
+
 export function PredictionTrigger({ market }: PredictionTriggerProps) {
+  const { connected, publicKey } = useWallet();
   const [status, setStatus] = useState<'idle' | 'paying' | 'pending' | 'completed' | 'error'>('idle');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<{ prediction: string; confidence: number; reasoning: string[] } | null>(null);
 
-  const handleDemoPrediction = async () => {
+  const handlePaymentComplete = async (transactionSignature: string) => {
     setStatus('pending');
     setErrorMsg(null);
     setPrediction(null);
@@ -29,15 +34,50 @@ export function PredictionTrigger({ market }: PredictionTriggerProps) {
       const response = await apiClient.post<{
         id: string;
         status: string;
-        prediction: { prediction: string; confidence: number; reasoning: string[] };
         message: string;
-      }>('/predictions/demo-trigger', {
+      }>('/predictions/trigger', {
         marketId: market.id,
+        walletAddress: publicKey?.toBase58(),
+        transactionSignature,
+        tokenAmount: TOKEN_COST.toString(),
       });
 
       setRequestId(response.id);
-      setPrediction(response.prediction);
-      setStatus('completed');
+
+      // Poll for prediction result
+      const pollInterval = setInterval(async () => {
+        try {
+          const predictionData = await apiClient.get<{
+            id: string;
+            status: string;
+            prediction?: { prediction: string; confidence: number; reasoning: string[] };
+          }>(`/predictions/request/${response.id}`);
+
+          if (predictionData.status === 'completed' && predictionData.prediction) {
+            clearInterval(pollInterval);
+            setPrediction(predictionData.prediction);
+            setStatus('completed');
+          } else if (predictionData.status === 'failed') {
+            clearInterval(pollInterval);
+            setStatus('error');
+            setErrorMsg('Prediction generation failed');
+          }
+        } catch (err) {
+          clearInterval(pollInterval);
+          setStatus('error');
+          setErrorMsg('Failed to fetch prediction result');
+        }
+      }, 3000);
+
+      // Timeout after 2 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (status === 'pending') {
+          setStatus('error');
+          setErrorMsg('Prediction timed out');
+        }
+      }, 120000);
+
     } catch (err: unknown) {
       const error = err as { status?: number; code?: string; message?: string };
       setStatus('error');
@@ -49,17 +89,22 @@ export function PredictionTrigger({ market }: PredictionTriggerProps) {
     <div className="rounded-xl border border-border bg-bg-secondary p-6">
       <h2 className="text-lg font-semibold mb-2">Get AI Prediction</h2>
       <p className="text-sm text-text-secondary mb-4">
-        Pay with Bags (via Bags.fm) to receive an AI-powered market prediction.
+        Pay {TOKEN_COST} BAGS token to receive an AI-powered market prediction.
       </p>
 
       {status === 'idle' || status === 'error' ? (
         <div className="space-y-3">
-          <button
-            onClick={handleDemoPrediction}
-            className="w-full rounded-lg bg-accent-green/10 border border-accent-green/30 px-4 py-2.5 text-sm font-medium text-accent-green transition-all hover:bg-accent-green/20 hover:border-accent-green/50"
-          >
-            Generate AI Prediction (Demo)
-          </button>
+          {connected ? (
+            <PaymentButton
+              marketId={market.id}
+              onPaymentComplete={handlePaymentComplete}
+              disabled={status === 'paying'}
+            />
+          ) : (
+            <div className="rounded-lg border border-accent-yellow/30 bg-bg-tertiary p-4 text-center">
+              <p className="text-sm text-text-secondary">Connect your wallet to get predictions</p>
+            </div>
+          )}
           {errorMsg && <p className="text-xs text-accent-red text-center">{errorMsg}</p>}
         </div>
       ) : status === 'pending' ? (
