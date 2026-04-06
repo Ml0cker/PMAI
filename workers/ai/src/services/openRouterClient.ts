@@ -59,7 +59,7 @@ export class OpenRouterClient {
         throw new Error(`OpenRouter API returned ${response.status}: ${errorBody}`);
       }
 
-      const data: OpenRouterResponse = await response.json();
+      const data: OpenRouterResponse = (await response.json()) as OpenRouterResponse;
 
       if (!data.choices || data.choices.length === 0) {
         throw new Error('OpenRouter returned no choices');

@@ -65,14 +65,16 @@ export class PredictionGenerator {
       throw new AppError(ErrorCode.AI_RESPONSE_INVALID, 'AI response does not match expected prediction schema');
     }
 
+    const validParsed = parsed as any;
+
     const prediction = await prisma.prediction.create({
       data: {
         requestId,
         userId,
         marketId,
-        prediction: parsed.prediction,
-        confidence: parsed.confidence,
-        reasoning: parsed.reasoning,
+        prediction: validParsed.prediction,
+        confidence: validParsed.confidence,
+        reasoning: validParsed.reasoning,
         modelVersion: AI.MODEL,
       },
     });
