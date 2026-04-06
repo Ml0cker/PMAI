@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { PredictionService } from '../services/predictionService';
+import { PredictionService } from '../services/predictionService.js';
 import { AppError, ErrorCode } from '@pmai/shared';
-import { PredictionGenerator } from '../services/predictionGenerator';
+import { PredictionGenerator } from '../services/predictionGenerator.js';
 import prisma from '@pmai/db';
 
 const router = Router();

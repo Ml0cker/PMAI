@@ -1,6 +1,6 @@
 import prisma from '@pmai/db';
-import { aiQueue, solanaQueue } from '../lib/queues';
-import { logger } from '../lib/logger';
+import { aiQueue, solanaQueue } from '../lib/queues.js';
+import { logger } from '../lib/logger.js';
 import { AppError, ErrorCode } from '@pmai/shared';
 
 function parseJsonField<T>(val: unknown): T {

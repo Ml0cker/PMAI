@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError, ErrorCode } from '@pmai/shared';
-import { logger } from '../lib/logger';
+import { logger } from '../lib/logger.js';
 
 export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {

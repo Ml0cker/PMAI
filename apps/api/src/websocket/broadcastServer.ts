@@ -1,5 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { logger } from '../lib/logger';
+import { logger } from '../lib/logger.js';
 
 type Client = {
   ws: WebSocket;

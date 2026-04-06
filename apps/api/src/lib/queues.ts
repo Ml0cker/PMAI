@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 import type { AIJobData, PolymarketJobData, SolanaJobData } from '@pmai/shared';
 import { QUEUE_NAMES } from '@pmai/shared';
-import { redisConnection } from './redis';
+import { redisConnection } from './redis.js';
 
 export const aiQueue = new Queue<AIJobData>(QUEUE_NAMES.AI_PREDICTION, {
   connection: redisConnection,

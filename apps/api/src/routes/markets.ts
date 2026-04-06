@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { MarketService } from '../services/marketService';
+import { MarketService } from '../services/marketService.js';
 import { AppError, ErrorCode } from '@pmai/shared';
 import prisma from '@pmai/db';
 

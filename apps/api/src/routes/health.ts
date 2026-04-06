@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '@pmai/db';
-import { redisConnection } from '../lib/redis';
+import { redisConnection } from '../lib/redis.js';
 
 const router = Router();
 
