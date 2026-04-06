@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { SOLANA } from '@pmai/shared';
 import prisma from '@pmai/db';
-import { logger } from '../lib/logger';
+import { logger } from '../lib/logger.js';
 import { AppError, ErrorCode } from '@pmai/shared';
 
 export class TransactionVerifier {

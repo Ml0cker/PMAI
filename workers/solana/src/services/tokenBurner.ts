@@ -2,7 +2,7 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { createBurnInstruction, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { SOLANA } from '@pmai/shared';
 import prisma from '@pmai/db';
-import { logger } from '../lib/logger';
+import { logger } from '../lib/logger.js';
 
 export class TokenBurner {
   private connection: Connection;

@@ -6,7 +6,7 @@ import { redisConnection } from './lib/redis.js';
 import { QUEUE_NAMES, QUEUE_DLQ_SUFFIX } from '@pmai/shared';
 import type { SolanaJobData } from '@pmai/shared';
 import prisma from '@pmai/db';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 const verifier = new TransactionVerifier();
 const burner = new TokenBurner();
