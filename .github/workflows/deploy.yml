@@ -63,7 +63,14 @@ jobs:
             $COMPOSE up -d
 
             echo ">>> Waiting for services to be healthy..."
-            sleep 20
+            for i in {1..30}; do
+              if $COMPOSE ps | grep -q "Up"; then
+                echo "Services are starting..."
+                break
+              fi
+              sleep 1
+            done
+            sleep 10
 
             echo ">>> Checking container status..."
             $COMPOSE ps
