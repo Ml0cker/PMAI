@@ -3,7 +3,7 @@ import { OpenRouterClient } from './openRouterClient';
 import { buildPredictionPrompt } from './promptBuilder';
 import { isValidPredictionOutput, AI, AppError, ErrorCode } from '@pmai/shared';
 import { logger } from '../lib/logger';
-import { Redis } from 'ioredis';
+import Redis from 'ioredis';
 
 export class PredictionGenerator {
   private client: OpenRouterClient;
