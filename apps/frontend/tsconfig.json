@@ -9,6 +9,7 @@
     "declaration": false,
     "declarationMap": false,
     "incremental": false,
+    "baseUrl": ".",
     "plugins": [
       {
         "name": "next"
