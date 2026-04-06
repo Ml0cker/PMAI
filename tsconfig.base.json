@@ -14,7 +14,11 @@
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "paths": {
+      "@pmai/shared": ["packages/shared/dist/index.js"],
+      "@pmai/db": ["packages/db/dist/index.js"]
+    }
   },
   "exclude": ["node_modules", "dist", ".next"]
 }
