@@ -26,7 +26,7 @@ interface MarketCardProps {
     id: string;
     question: string;
     slug: string;
-    outcomes: string[];
+    outcomes: string[] | string;
     outcomePrices: string[] | string;
     volume24hr: number | null;
     volume?: number | null;
