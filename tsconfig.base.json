@@ -15,6 +15,7 @@
     "sourceMap": true,
     "composite": true,
     "incremental": true,
+    "baseUrl": ".",
     "paths": {
       "@pmai/shared": ["packages/shared/dist/index.js"],
       "@pmai/db": ["packages/db/dist/index.js"]
