@@ -7,7 +7,8 @@
     "moduleResolution": "node",
     "noEmit": false,
     "skipLibCheck": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "strict": false
   },
   "include": ["src"]
 }
