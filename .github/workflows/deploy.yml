@@ -50,12 +50,17 @@ jobs:
               COMPOSE="docker compose -f docker/docker-compose.yml"
             fi
 
-            echo ">>> Building and restarting..."
-            $COMPOSE build
+            echo ">>> Stopping containers..."
+            $COMPOSE down
+
+            echo ">>> Building images..."
+            $COMPOSE build --no-cache
+
+            echo ">>> Starting containers..."
             $COMPOSE up -d
 
-            echo ">>> Waiting for API to be healthy..."
-            sleep 10
+            echo ">>> Waiting for services to be healthy..."
+            sleep 15
 
             echo ">>> Running DB migrations..."
             $COMPOSE exec -T api \
