@@ -197,7 +197,7 @@ export class PolymarketRestSync {
         throw new Error(`Gamma API returned ${response.status}: ${await response.text()}`);
       }
 
-      const events: GammaEvent[] = await response.json();
+      const events: GammaEvent[] = (await response.json()) as GammaEvent[];
       allEvents.push(...events);
 
       hasMore = events.length === limit;
