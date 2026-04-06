@@ -1,5 +1,5 @@
 import { AI } from '@pmai/shared';
-import { logger } from '../lib/logger';
+import { logger } from '../lib/logger.js';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
