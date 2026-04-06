@@ -25,9 +25,9 @@ app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(requestLogger);
 
-app.use('/health', healthRouter);
-app.use('/markets', marketsRouter);
-app.use('/predictions', predictionsRouter);
+app.use('/api/health', healthRouter);
+app.use('/api/markets', marketsRouter);
+app.use('/api/predictions', predictionsRouter);
 
 app.use(errorHandler);
 
