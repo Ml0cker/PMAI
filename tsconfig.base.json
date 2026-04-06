@@ -17,8 +17,10 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@pmai/shared": ["packages/shared/dist/index.js"],
-      "@pmai/db": ["packages/db/dist/index.js"]
+      "@pmai/shared": ["packages/shared/dist"],
+      "@pmai/shared/*": ["packages/shared/dist/*"],
+      "@pmai/db": ["packages/db/dist"],
+      "@pmai/db/*": ["packages/db/dist/*"]
     }
   },
   "exclude": ["node_modules", "dist", ".next"]
