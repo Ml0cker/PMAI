@@ -10,9 +10,7 @@
     "noImplicitAny": false,
     "strict": false,
     "strictNullChecks": false,
-    "strictPropertyInitialization": false,
-    "suppressExcessPropertyErrors": true,
-    "suppressImplicitAnyIndexErrors": true
+    "strictPropertyInitialization": false
   },
   "include": ["src"]
 }

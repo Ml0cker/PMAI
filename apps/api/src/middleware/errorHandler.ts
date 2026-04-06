@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError, ErrorCode } from '@pmai/shared';
 import { logger } from '../lib/logger';
 
-export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     logger.warn(
       { code: err.code, statusCode: err.statusCode, message: err.message },

@@ -126,14 +126,14 @@ export class PredictionGenerator {
       );
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     if (!data.choices?.length) {
       throw new AppError(ErrorCode.AI_SERVICE_ERROR, 'OpenRouter returned no choices', 502);
     }
 
     const rawResponse = data.choices[0].message.content;
 
-    let parsed: unknown;
+    let parsed: any;
     try {
       const cleaned = rawResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       parsed = JSON.parse(cleaned);
