@@ -1,6 +1,6 @@
 {$DOMAIN:pmai.fun} {
-	# API proxy
-	handle /api/* {
+	# API proxy (strip /api prefix)
+	handle_path /api/* {
 		reverse_proxy api:4000
 	}
 
