@@ -1,7 +1,7 @@
 import { Worker, Queue } from 'bullmq';
-import { PredictionGenerator } from './services/predictionGenerator';
-import { logger } from './lib/logger';
-import { redisConnection } from './lib/redis';
+import { PredictionGenerator } from './services/predictionGenerator.js';
+import { logger } from './lib/logger.js';
+import { redisConnection } from './lib/redis.js';
 import { QUEUE_NAMES, QUEUE_DLQ_SUFFIX } from '@pmai/shared';
 import type { AIJobData } from '@pmai/shared';
 import prisma from '@pmai/db';
