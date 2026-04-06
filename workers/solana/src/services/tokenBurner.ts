@@ -11,7 +11,7 @@ export class TokenBurner {
 
   constructor() {
     this.connection = new Connection(SOLANA.RPC_URL, SOLANA.CONFIRMATION_COMMITMENT);
-    this.bucksMint = new PublicKey(SOLANA.BAGS_MINT_ADDRESS);
+    this.bagsMint = new PublicKey(SOLANA.BAGS_MINT_ADDRESS);
     this.platformWallet = new PublicKey(process.env.PLATFORM_WALLET_ADDRESS || '');
   }
 
