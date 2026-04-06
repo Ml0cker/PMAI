@@ -1,8 +1,8 @@
 import { Worker, Queue } from 'bullmq';
-import { TransactionVerifier } from './services/transactionVerifier';
-import { TokenBurner } from './services/tokenBurner';
-import { logger } from './lib/logger';
-import { redisConnection } from './lib/redis';
+import { TransactionVerifier } from './services/transactionVerifier.js';
+import { TokenBurner } from './services/tokenBurner.js';
+import { logger } from './lib/logger.js';
+import { redisConnection } from './lib/redis.js';
 import { QUEUE_NAMES, QUEUE_DLQ_SUFFIX } from '@pmai/shared';
 import type { SolanaJobData } from '@pmai/shared';
 import prisma from '@pmai/db';
