@@ -57,10 +57,10 @@ jobs:
             $COMPOSE down || true
 
             echo ">>> Building images..."
-            $COMPOSE build --no-cache || exit 1
+            $COMPOSE build
 
             echo ">>> Starting containers..."
-            $COMPOSE up -d || exit 1
+            $COMPOSE up -d
 
             echo ">>> Waiting for services to be healthy..."
             sleep 20
