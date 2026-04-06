@@ -19,7 +19,7 @@ RUN npm run build -w packages/shared
 RUN npm run build -w packages/db
 RUN npm run build -w workers/ai
 
-FROM node:20-slim
+FROM node:20-bullseye-slim
 
 RUN apt-get update -y && apt-get install -y openssl libssl1.1
 
