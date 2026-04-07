@@ -64,12 +64,13 @@ jobs:
 
             # Use docker-compose or docker compose depending on what's installed
             if command -v docker-compose &> /dev/null; then
-              COMPOSE="docker-compose -f docker/docker-compose.yml"
+              COMPOSE="docker-compose"
             else
-              COMPOSE="docker compose -f docker/docker-compose.yml"
+              COMPOSE="docker compose"
             fi
 
             echo ">>> Stopping containers..."
+            cd docker
             $COMPOSE down || true
 
             echo ">>> Building images..."
@@ -98,7 +99,9 @@ jobs:
               npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss 2>/dev/null || true
 
             echo ">>> Cleaning old images..."
+            cd /opt/pmai
             docker image prune -f
 
             echo ">>> Done!"
+            cd docker
             $COMPOSE ps
