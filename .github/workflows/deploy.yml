@@ -45,7 +45,7 @@ ENVEOF
             cp .env docker/.env
 
             cd docker
-            echo ">>> Updating containers..."
-            docker compose pull || true
-            docker compose up -d
+            echo ">>> Restarting containers to load new env vars..."
+            docker compose restart api worker-ai || true
+            sleep 10
             echo ">>> Done!"
