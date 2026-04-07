@@ -7,6 +7,17 @@ import prisma from '@pmai/db';
 const router = Router();
 const predictionService = new PredictionService();
 
+// Debug endpoint to check environment variables
+router.get('/debug/env', async (req: Request, res: Response) => {
+  res.json({
+    hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
+    keyLength: process.env.OPENROUTER_API_KEY?.length || 0,
+    keyPrefix: process.env.OPENROUTER_API_KEY?.substring(0, 15) || 'missing',
+    nodeEnv: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
+
 router.post('/trigger', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { marketId, walletAddress, transactionSignature, tokenAmount } = req.body;
