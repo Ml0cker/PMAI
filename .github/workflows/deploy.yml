@@ -20,7 +20,7 @@ jobs:
             cd /opt/pmai
 
             echo ">>> Creating .env file..."
-            cat > .env << 'EOF'
+            cat > .env << EOF
             NODE_ENV=production
             LOG_LEVEL=info
             POSTGRES_USER=pmai
