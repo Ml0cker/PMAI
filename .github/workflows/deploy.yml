@@ -76,9 +76,6 @@ ENVEOF
             echo ">>> Verifying containers are running..."
             $COMPOSE ps
 
-            RUNNING=$($COMPOSE ps --status running | wc -l)
-            echo "Found $RUNNING running containers"
-
             echo ">>> Running DB migrations..."
             $COMPOSE exec -T api \
               npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss 2>/dev/null || true
@@ -87,18 +84,12 @@ ENVEOF
             cd /opt/pmai
             docker image prune -f
 
-            echo ">>> Done!"
-            cd docker
-            $COMPOSE ps
-
-            echo ">>> Checking worker-ai logs for API key..."
-            $COMPOSE logs worker-ai | grep -i "openrouter\|apikey\|haskey" | tail -20 || echo "No relevant logs found"
-
-            echo ">>> Checking api logs for API key..."
-            $COMPOSE logs api | grep -i "openrouter\|apikey\|predictiongenerator" | tail -20 || echo "No relevant logs found"
-
             echo ">>> Checking environment variables in worker-ai container..."
-            $COMPOSE exec -T worker-ai printenv | grep OPENROUTER || echo "OPENROUTER_API_KEY not found in container!"
+            cd docker
+            $COMPOSE exec -T worker-ai printenv | grep OPENROUTER || echo "OPENROUTER_API_KEY not found in worker-ai!"
 
             echo ">>> Checking environment variables in api container..."
-            $COMPOSE exec -T api printenv | grep OPENROUTER || echo "OPENROUTER_API_KEY not found in container!"
+            $COMPOSE exec -T api printenv | grep OPENROUTER || echo "OPENROUTER_API_KEY not found in api!"
+
+            echo ">>> Done!"
+            $COMPOSE ps
