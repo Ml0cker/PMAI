@@ -64,14 +64,15 @@ ENVEOF
             cd docker
             $COMPOSE down || true
 
-            echo ">>> Building images..."
-            $COMPOSE build
-
-            echo ">>> Starting containers in background..."
-            $COMPOSE up -d
+            echo ">>> Starting containers..."
+            $COMPOSE up -d 2>&1 | tee /tmp/compose-up.log || {
+              echo "ERROR: Docker Compose failed!"
+              cat /tmp/compose-up.log
+              exit 1
+            }
 
             echo ">>> Waiting for containers to start..."
-            sleep 45
+            sleep 30
 
             echo ">>> Done!"
             $COMPOSE ps
