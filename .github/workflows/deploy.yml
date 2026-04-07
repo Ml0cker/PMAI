@@ -43,12 +43,15 @@ ENVEOF
 
             echo ">>> Verifying .env file..."
             grep OPENROUTER_API_KEY .env | cut -c1-40
+            echo "Total lines in .env: $(wc -l < .env)"
 
             echo ">>> Pulling latest code..."
             git pull origin main
 
             echo ">>> Copying .env to docker directory..."
             cp .env docker/.env
+            echo "Verifying docker/.env:"
+            grep OPENROUTER_API_KEY docker/.env | cut -c1-40
 
             # Use docker-compose or docker compose depending on what's installed
             if command -v docker-compose &> /dev/null; then
