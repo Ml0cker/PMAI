@@ -71,14 +71,7 @@ ENVEOF
             $COMPOSE up -d
 
             echo ">>> Waiting for containers to start..."
-            sleep 30
-
-            echo ">>> Verifying containers are running..."
-            $COMPOSE ps
-
-            echo ">>> Running DB migrations..."
-            $COMPOSE exec -T api \
-              npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss 2>/dev/null || true
+            sleep 45
 
             echo ">>> Done!"
             $COMPOSE ps
