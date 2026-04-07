@@ -18,11 +18,45 @@ jobs:
           command_timeout: 15m
           script: |
             cd /opt/pmai
-            echo ">>> Current directory: $(pwd)"
-            echo ">>> Disk space:"
-            df -h /opt/pmai
-            echo ">>> Docker status:"
-            docker ps
-            echo ">>> Git status:"
-            git status
-            echo ">>> Test complete!"
+
+            echo ">>> Creating .env file..."
+            cat > .env << 'ENVEOF'
+NODE_ENV=production
+LOG_LEVEL=info
+POSTGRES_USER=pmai
+POSTGRES_DB=pmai
+REDIS_URL=redis://redis:6379
+API_PORT=4000
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+ENVEOF
+
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+            echo "DATABASE_URL=postgresql://pmai:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/pmai" >> .env
+            echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
+            echo "FRONTEND_URL=https://${{ secrets.DOMAIN }}" >> .env
+            echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+            echo "BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}" >> .env
+            echo "PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}" >> .env
+            echo "NEXT_PUBLIC_API_URL=https://${{ secrets.DOMAIN }}/api" >> .env
+            echo "NEXT_PUBLIC_WS_URL=wss://${{ secrets.DOMAIN }}/ws" >> .env
+            echo "NEXT_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com" >> .env
+
+            echo ">>> Pulling latest code..."
+            git pull origin main
+
+            echo ">>> Copying .env to docker directory..."
+            cp .env docker/.env
+
+            cd docker
+            if command -v docker-compose &> /dev/null; then
+              COMPOSE="docker-compose"
+            else
+              COMPOSE="docker compose"
+            fi
+
+            echo ">>> Restarting containers..."
+            $COMPOSE down
+            $COMPOSE up -d
+
+            echo ">>> Done!"
+            $COMPOSE ps
