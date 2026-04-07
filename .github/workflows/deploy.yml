@@ -17,8 +17,20 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           command_timeout: 15m
           script: |
-          script: |
-            cd /opt/pmai/docker
-            docker compose up -d --force-recreate
+            cd /opt/pmai
+            git pull origin main || true
+            cd docker
+            cat > .env << 'ENVEOF'
+            POSTGRES_USER=pmai
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=pmai
+            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+            SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}
+            BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}
+            PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}
+            ENVEOF
+            docker compose down || true
+            sleep 2
+            docker compose up -d --build
             sleep 5
             docker compose ps
