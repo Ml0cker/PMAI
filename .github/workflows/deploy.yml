@@ -105,3 +105,9 @@ jobs:
             echo ">>> Done!"
             cd docker
             $COMPOSE ps
+
+            echo ">>> Checking worker-ai logs for API key..."
+            $COMPOSE logs worker-ai | grep -i "openrouter\|apikey\|haskey" | tail -20 || echo "No relevant logs found"
+
+            echo ">>> Checking api logs for API key..."
+            $COMPOSE logs api | grep -i "openrouter\|apikey\|predictiongenerator" | tail -20 || echo "No relevant logs found"
