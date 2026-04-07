@@ -39,15 +39,5 @@ ENVEOF
             echo "NEXT_PUBLIC_WS_URL=wss://${{ secrets.DOMAIN }}/ws" >> .env
             echo "NEXT_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com" >> .env
 
-            echo ">>> Pulling latest code..."
-            git pull origin main
-            echo ">>> Copying .env to docker directory..."
             cp .env docker/.env
-
-            cd docker
-            echo ">>> Killing old containers..."
-            docker kill pmai-api pmai-worker-ai 2>/dev/null || true
-            sleep 2
-            echo ">>> Starting new containers..."
-            docker-compose up -d api worker-ai
-            echo ">>> Done!"
+            echo ">>> .env file updated"
