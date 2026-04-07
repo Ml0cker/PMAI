@@ -64,8 +64,8 @@ ENVEOF
             cd docker
             $COMPOSE down || true
 
-            echo ">>> Building images..."
-            $COMPOSE build
+            echo ">>> Building images with no cache..."
+            $COMPOSE build --no-cache api worker-ai
 
             echo ">>> Starting containers in background..."
             nohup $COMPOSE up -d > /tmp/docker-up.log 2>&1 &
