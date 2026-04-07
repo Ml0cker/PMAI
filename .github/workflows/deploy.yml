@@ -45,7 +45,6 @@ ENVEOF
             cp .env docker/.env
 
             cd docker
-            echo ">>> Restarting containers to load new env vars..."
-            docker compose restart api worker-ai || true
-            sleep 10
+            echo ">>> Restarting containers..."
+            docker-compose restart api worker-ai
             echo ">>> Done!"
