@@ -80,16 +80,5 @@ ENVEOF
             $COMPOSE exec -T api \
               npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss 2>/dev/null || true
 
-            echo ">>> Cleaning old images..."
-            cd /opt/pmai
-            docker image prune -f
-
-            echo ">>> Checking environment variables in worker-ai container..."
-            cd docker
-            $COMPOSE exec -T worker-ai printenv | grep OPENROUTER || echo "OPENROUTER_API_KEY not found in worker-ai!"
-
-            echo ">>> Checking environment variables in api container..."
-            $COMPOSE exec -T api printenv | grep OPENROUTER || echo "OPENROUTER_API_KEY not found in api!"
-
             echo ">>> Done!"
             $COMPOSE ps
