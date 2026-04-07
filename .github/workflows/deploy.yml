@@ -59,21 +59,23 @@ jobs:
             echo ">>> Building images..."
             $COMPOSE build
 
-            echo ">>> Starting containers..."
-            $COMPOSE up -d
+            echo ">>> Starting containers in background..."
+            nohup $COMPOSE up -d > /tmp/docker-up.log 2>&1 &
 
-            echo ">>> Waiting for services to be healthy..."
-            for i in {1..30}; do
-              if $COMPOSE ps | grep -q "Up"; then
-                echo "Services are starting..."
-                break
-              fi
-              sleep 1
-            done
-            sleep 10
+            echo ">>> Waiting for containers to start..."
+            sleep 30
 
-            echo ">>> Checking container status..."
+            echo ">>> Verifying containers are running..."
             $COMPOSE ps
+
+            RUNNING=$($COMPOSE ps | grep -c "Up" || echo "0")
+            echo "Found $RUNNING running containers"
+
+            if [ "$RUNNING" -lt "6" ]; then
+              echo "ERROR: Not all containers started"
+              cat /tmp/docker-up.log || true
+              exit 1
+            fi
 
             echo ">>> Running DB migrations..."
             $COMPOSE exec -T api \
