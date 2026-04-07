@@ -5,6 +5,8 @@ services:
     image: postgres:16-alpine
     container_name: pmai-postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-pmai}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmai_dev}
@@ -46,6 +48,8 @@ services:
     restart: unless-stopped
     expose:
       - '4000'
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
       REDIS_URL: redis://redis:6379
@@ -91,6 +95,8 @@ services:
       dockerfile: docker/Dockerfile.worker-polymarket
     container_name: pmai-worker-polymarket
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
       REDIS_URL: redis://redis:6379
@@ -112,6 +118,8 @@ services:
       dockerfile: docker/Dockerfile.worker-ai
     container_name: pmai-worker-ai
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
       REDIS_URL: redis://redis:6379
@@ -134,6 +142,8 @@ services:
       dockerfile: docker/Dockerfile.worker-solana
     container_name: pmai-worker-solana
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-pmai}:${POSTGRES_PASSWORD:-pmai_dev}@postgres:5432/${POSTGRES_DB:-pmai}
       REDIS_URL: redis://redis:6379
