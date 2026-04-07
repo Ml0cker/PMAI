@@ -19,6 +19,6 @@ jobs:
           script: |
           script: |
             cd /opt/pmai/docker
-            docker-compose down
-            docker-compose up -d
+            docker-compose up -d --force-recreate
+            sleep 5
             docker-compose ps
