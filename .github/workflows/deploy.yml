@@ -8,12 +8,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      DOMAIN: ${{ secrets.DOMAIN }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      BAGS_MINT_ADDRESS: ${{ secrets.BAGS_MINT_ADDRESS }}
-      PLATFORM_WALLET_ADDRESS: ${{ secrets.PLATFORM_WALLET_ADDRESS }}
     steps:
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
@@ -22,35 +16,33 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           command_timeout: 15m
-          envs: POSTGRES_PASSWORD,DOMAIN,OPENROUTER_API_KEY,BAGS_MINT_ADDRESS,PLATFORM_WALLET_ADDRESS
           script: |
             cd /opt/pmai
 
             echo ">>> Creating .env file..."
-            echo "DEBUG: OPENROUTER_API_KEY length: ${#OPENROUTER_API_KEY}"
-            cat > .env <<EOF
+            cat > .env <<'ENDOFENV'
             NODE_ENV=production
             LOG_LEVEL=info
             POSTGRES_USER=pmai
-            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DB=pmai
-            DATABASE_URL=postgresql://pmai:${POSTGRES_PASSWORD}@postgres:5432/pmai
+            DATABASE_URL=postgresql://pmai:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/pmai
             REDIS_URL=redis://redis:6379
             API_PORT=4000
-            DOMAIN=${DOMAIN}
-            FRONTEND_URL=https://${DOMAIN}
-            OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+            DOMAIN=${{ secrets.DOMAIN }}
+            FRONTEND_URL=https://${{ secrets.DOMAIN }}
+            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
             SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-            BAGS_MINT_ADDRESS=${BAGS_MINT_ADDRESS}
-            PLATFORM_WALLET_ADDRESS=${PLATFORM_WALLET_ADDRESS}
-            NEXT_PUBLIC_API_URL=https://${DOMAIN}/api
-            NEXT_PUBLIC_WS_URL=wss://${DOMAIN}/ws
+            BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}
+            PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}
+            NEXT_PUBLIC_API_URL=https://${{ secrets.DOMAIN }}/api
+            NEXT_PUBLIC_WS_URL=wss://${{ secrets.DOMAIN }}/ws
             NEXT_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-            EOF
+            ENDOFENV
 
             echo ">>> Verifying .env file..."
-            echo "OPENROUTER_API_KEY in .env:"
-            grep OPENROUTER_API_KEY .env | cut -c1-50
+            grep -c OPENROUTER_API_KEY .env || echo "Key not found!"
+            head -1 .env
 
             echo ">>> Pulling latest code..."
             git pull origin main
