@@ -45,8 +45,7 @@ ENVEOF
             cp .env docker/.env
 
             cd docker
-            echo ">>> Stopping and removing containers..."
-            docker-compose down 2>/dev/null || docker compose down 2>/dev/null || true
-            echo ">>> Starting containers..."
+            echo ">>> Pulling images and starting containers..."
+            docker-compose pull 2>/dev/null || docker compose pull 2>/dev/null || true
             docker-compose up -d 2>/dev/null || docker compose up -d
             echo ">>> Done!"
