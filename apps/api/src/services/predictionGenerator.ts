@@ -57,6 +57,7 @@ function delay(ms: number): Promise<void> {
 export class PredictionGenerator {
   async generate(ctx: MarketContext): Promise<PredictionOutput> {
     const apiKey = process.env.OPENROUTER_API_KEY || '';
+    console.log('[PredictionGenerator] OPENROUTER_API_KEY present:', !!apiKey, 'length:', apiKey.length);
     if (!apiKey) {
       throw new AppError(ErrorCode.AI_SERVICE_ERROR, 'OPENROUTER_API_KEY environment variable is required', 500);
     }
@@ -92,6 +93,8 @@ export class PredictionGenerator {
   }
 
   private async callOpenRouter(apiKey: string, prompt: string): Promise<PredictionOutput> {
+    console.log('[PredictionGenerator] Calling OpenRouter with key length:', apiKey.length);
+    console.log('[PredictionGenerator] Key starts with:', apiKey.substring(0, 10));
     const response = await fetch(AI.OPENROUTER_API_URL, {
       method: 'POST',
       headers: {

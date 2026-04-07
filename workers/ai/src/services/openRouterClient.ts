@@ -26,6 +26,11 @@ export class OpenRouterClient {
 
   constructor() {
     this.apiKey = process.env.OPENROUTER_API_KEY || '';
+    logger.info({
+      hasKey: !!this.apiKey,
+      keyLength: this.apiKey.length,
+      keyPrefix: this.apiKey.substring(0, 10)
+    }, 'OpenRouterClient initialized');
     if (!this.apiKey) {
       throw new Error('OPENROUTER_API_KEY environment variable is required');
     }
@@ -34,6 +39,12 @@ export class OpenRouterClient {
   async chatCompletion(messages: ChatMessage[]): Promise<string> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), AI.REQUEST_TIMEOUT_MS);
+
+    logger.info({
+      apiKeyLength: this.apiKey.length,
+      apiKeyPrefix: this.apiKey.substring(0, 10),
+      url: this.baseUrl
+    }, 'Making OpenRouter API call');
 
     try {
       const response = await fetch(this.baseUrl, {

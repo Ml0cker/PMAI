@@ -102,3 +102,49 @@ Copy `.env.example` to `.env`. Required for running locally:
 Pump.fun-inspired dark theme. Colors defined in `apps/frontend/tailwind.config.ts`:
 - Background: `#0e0e12`, Surface: `#1a1a24`
 - Accent green: `#00ff88`, Accent red: `#ff3b3b`, Accent purple: `#7c3aed`
+
+## Development Workflow
+
+### Local Setup
+1. Copy `.env.example` to `.env` and fill in required variables
+2. Start PostgreSQL and Redis (or use Docker)
+3. Run `npm install` then `npm run db:push`
+4. Start dev servers in separate terminals:
+   - `npm run dev:frontend` (port 3000)
+   - `npm run dev:api` (port 4000)
+   - `npm run dev:worker:polymarket` (background job)
+
+### Testing
+- Run tests: `npm test`
+- Type check: `npm run typecheck`
+- Build check: `npm run build`
+
+### Code Style
+- ESM imports only (use `.js` extensions for local imports)
+- TypeScript strict mode enabled
+- No console.log in production code (use logger)
+- Immutable data patterns where possible
+
+## Common Issues & Solutions
+
+**ESM Import Errors**: Always use `.js` extensions in worker/api packages
+```typescript
+// ✓ Correct
+import { foo } from './lib/bar.js';
+
+// ✗ Wrong
+import { foo } from './lib/bar';
+```
+
+**Database Connection**: Ensure `DATABASE_URL` format is `postgresql://user:pass@host:port/db`
+
+**Redis Connection**: Must be Redis 5+ for BullMQ compatibility
+
+**WebSocket Issues**: Check CORS headers in API responses, frontend origin must match
+
+## Deployment
+
+Production deployment via GitHub Actions to remote server at `77.238.226.31`.
+- Docker Compose stack in `/opt/pmai`
+- Check status: `npm run deploy:status`
+- Manual deploy: `npm run deploy`
