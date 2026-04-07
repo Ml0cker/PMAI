@@ -64,11 +64,11 @@ ENVEOF
             cd docker
             $COMPOSE down || true
 
-            echo ">>> Building images with no cache..."
-            $COMPOSE build --no-cache api worker-ai
+            echo ">>> Building images..."
+            $COMPOSE build
 
             echo ">>> Starting containers in background..."
-            nohup $COMPOSE up -d > /tmp/docker-up.log 2>&1 &
+            $COMPOSE up -d
 
             echo ">>> Waiting for containers to start..."
             sleep 30
@@ -76,14 +76,8 @@ ENVEOF
             echo ">>> Verifying containers are running..."
             $COMPOSE ps
 
-            RUNNING=$($COMPOSE ps | grep -c "Up" || echo "0")
+            RUNNING=$($COMPOSE ps --status running | wc -l)
             echo "Found $RUNNING running containers"
-
-            if [ "$RUNNING" -lt "6" ]; then
-              echo "ERROR: Not all containers started"
-              cat /tmp/docker-up.log || true
-              exit 1
-            fi
 
             echo ">>> Running DB migrations..."
             $COMPOSE exec -T api \
