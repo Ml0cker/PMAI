@@ -2,6 +2,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG NEXT_PUBLIC_BAGS_MINT
+ARG NEXT_PUBLIC_PLATFORM_WALLET
+ENV NEXT_PUBLIC_BAGS_MINT=$NEXT_PUBLIC_BAGS_MINT
+ENV NEXT_PUBLIC_PLATFORM_WALLET=$NEXT_PUBLIC_PLATFORM_WALLET
+
 COPY package.json tsconfig.base.json .npmrc ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/frontend/package.json apps/frontend/
