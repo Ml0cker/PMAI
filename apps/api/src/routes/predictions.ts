@@ -30,17 +30,91 @@ router.post('/trigger', async (req: Request, res: Response, next: NextFunction) 
       );
     }
 
-    const predictionRequest = await predictionService.triggerPrediction({
-      marketId,
-      walletAddress,
-      transactionSignature,
-      tokenAmount: BigInt(tokenAmount),
+    // Validate market exists
+    const market = await prisma.market.findUnique({
+      where: { id: marketId },
+      include: { event: true },
+    });
+    if (!market || !market.active) {
+      throw new AppError(ErrorCode.MARKET_NOT_ACTIVE, 'Market not found or inactive', 404);
+    }
+
+    // Idempotency: check if this tx signature already has a completed prediction
+    const existingRequest = await prisma.predictionRequest.findFirst({
+      where: { burnSignature: transactionSignature },
+      include: { prediction: true },
+    });
+    if (existingRequest?.prediction) {
+      res.status(200).json({
+        id: existingRequest.id,
+        status: 'completed',
+        prediction: {
+          prediction: existingRequest.prediction.prediction,
+          confidence: existingRequest.prediction.confidence,
+          reasoning: existingRequest.prediction.reasoning as unknown as string[],
+        },
+        message: 'Prediction already exists for this transaction',
+      });
+      return;
+    }
+
+    // Find or create user + wallet
+    let wallet = await prisma.wallet.findFirst({ where: { address: walletAddress } });
+    let userId: string;
+    if (!wallet) {
+      const user = await prisma.user.create({ data: {} });
+      wallet = await prisma.wallet.create({ data: { userId: user.id, address: walletAddress } });
+      userId = user.id;
+    } else {
+      userId = wallet.userId;
+    }
+
+    // Create prediction request
+    const request = await prisma.predictionRequest.create({
+      data: {
+        userId,
+        marketId,
+        tokenAmount: Number(tokenAmount),
+        burnSignature: transactionSignature,
+        status: 'processing',
+      },
     });
 
-    res.status(202).json({
-      id: predictionRequest.id,
-      status: predictionRequest.status,
-      message: 'Prediction request submitted. Processing will begin shortly.',
+    // Generate prediction directly (payment already verified on-chain by frontend)
+    const generator = new PredictionGenerator();
+    const outcomes: string[] = Array.isArray(market.outcomes) ? market.outcomes as string[] : JSON.parse(market.outcomes as string || '["Yes","No"]');
+    const outcomePrices: string[] = Array.isArray(market.outcomePrices) ? market.outcomePrices as string[] : JSON.parse(market.outcomePrices as string || '["0.5","0.5"]');
+    const prediction = await generator.generate({
+      marketId: market.id,
+      question: market.question,
+      outcomes,
+      outcomePrices,
+      description: market.event?.description || '',
+    });
+
+    // Store immutable prediction
+    await prisma.prediction.create({
+      data: {
+        requestId: request.id,
+        userId,
+        marketId,
+        prediction: prediction.prediction,
+        confidence: prediction.confidence,
+        reasoning: prediction.reasoning as unknown as object,
+        modelVersion: prediction.modelVersion,
+      },
+    });
+
+    await prisma.predictionRequest.update({
+      where: { id: request.id },
+      data: { status: 'completed' },
+    });
+
+    res.status(200).json({
+      id: request.id,
+      status: 'completed',
+      prediction,
+      message: 'Prediction generated successfully',
     });
   } catch (err) {
     next(err);
