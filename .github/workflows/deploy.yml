@@ -20,17 +20,26 @@ jobs:
             cd /opt/pmai
             git pull origin main || true
             cd docker
-            cat > .env << ENVEOF
-            POSTGRES_USER=pmai
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_DB=pmai
-            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-            SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}
-            BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}
-            PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}
-            ENVEOF
-            echo "=== .env contents (secrets masked) ==="
+
+            # Write .env — secrets are already substituted by GitHub Actions,
+            # use printf to avoid shell expansion of special chars in values
+            printf '%s\n' \
+              "POSTGRES_USER=pmai" \
+              "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" \
+              "POSTGRES_DB=pmai" \
+              "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" \
+              "SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}" \
+              "BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}" \
+              "PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}" \
+              > .env
+
+            echo "=== .env keys ==="
             sed 's/=.*/=***/' .env
+
+            # Verify OPENROUTER_API_KEY is present
+            OR_KEY_LENGTH=$(grep -o 'OPENROUTER_API_KEY=.*' .env | sed 's/OPENROUTER_API_KEY=//' | wc -c)
+            echo "OPENROUTER_API_KEY length: $OR_KEY_LENGTH"
+
             echo "=== Starting deploy ==="
             # Use docker compose v2 plugin or fallback to docker-compose v1
             if docker compose version &>/dev/null; then
