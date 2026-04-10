@@ -7,7 +7,6 @@ import {
   getAssociatedTokenAddressSync,
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -44,31 +43,10 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
       const bagsMint = new PublicKey(bagsMintStr);
       const platformWallet = new PublicKey(platformWalletStr);
 
-      // Try both Token and Token-2022 program IDs
-      let userTokenAccount: PublicKey | undefined;
-      let platformTokenAccount: PublicKey | undefined;
-      let tokenProgram = TOKEN_PROGRAM_ID;
+      const userTokenAccount = getAssociatedTokenAddressSync(bagsMint, publicKey);
+      const platformTokenAccount = getAssociatedTokenAddressSync(bagsMint, platformWallet);
 
-      for (const programId of [TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID]) {
-        try {
-          const userAta = getAssociatedTokenAddressSync(bagsMint, publicKey, false, programId);
-          const platformAta = getAssociatedTokenAddressSync(bagsMint, platformWallet, false, programId);
-          // Verify user token account exists
-          await connection.getTokenAccountBalance(userAta);
-          userTokenAccount = userAta;
-          platformTokenAccount = platformAta;
-          tokenProgram = programId;
-          break;
-        } catch {
-          continue;
-        }
-      }
-
-      if (!userTokenAccount || !platformTokenAccount) {
-        throw new Error('BAGS token account not found. Make sure you have BAGS tokens.');
-      }
-
-      const amount = TOKEN_AMOUNT * Math.pow(10, TOKEN_DECIMALS);
+      const amount = BigInt(TOKEN_AMOUNT * Math.pow(10, TOKEN_DECIMALS));
 
       const transferIx = createTransferInstruction(
         userTokenAccount,
@@ -76,7 +54,7 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
         publicKey,
         amount,
         [],
-        tokenProgram,
+        TOKEN_PROGRAM_ID,
       );
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
