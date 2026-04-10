@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
@@ -15,7 +15,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          command_timeout: 15m
+          command_timeout: 25m
           script: |
             cd /opt/pmai
             git pull origin main || true
