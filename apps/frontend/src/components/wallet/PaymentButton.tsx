@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, Connection } from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
@@ -15,15 +15,6 @@ import { Spinner } from '@/components/ui/Spinner';
 import { getRpcUrl, markRpcFailed, markRpcOk } from '@/lib/rpcPool';
 
 const TOKEN_AMOUNT = 1;
-const MAX_RETRIES = 3;
-
-function isRpcError(err: unknown): boolean {
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase();
-    return msg.includes('403') || msg.includes('429') || msg.includes('forbidden') || msg.includes('rate');
-  }
-  return false;
-}
 
 interface PaymentButtonProps {
   marketId: string;
@@ -31,9 +22,29 @@ interface PaymentButtonProps {
   disabled?: boolean;
 }
 
+async function waitForConfirmation(conn: Connection, signature: string, timeoutMs = 45000): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const status = await conn.getSignatureStatus(signature);
+      if (status?.value) {
+        if (status.value.err) {
+          throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
+        }
+        if (status.value.confirmationStatus === 'confirmed' || status.value.confirmationStatus === 'finalized') {
+          return;
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('Transaction failed')) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  throw new Error('Transaction confirmation timed out');
+}
+
 export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProps) {
   const { connected, publicKey, sendTransaction } = useWallet();
-  const { connection } = useConnection();
   const [isPaying, setIsPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,81 +68,52 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
       const userTokenAccount = getAssociatedTokenAddressSync(bagsMint, publicKey);
       const platformTokenAccount = getAssociatedTokenAddressSync(bagsMint, platformWallet);
 
-      // Fetch mint info to get correct decimals
+      // Build transaction — don't set blockhash, sendTransaction will get a fresh one
+      const transaction = new Transaction();
+
+      // Check if platform token account exists, create if not
       const rpcUrl = getRpcUrl();
-      const rpcConn = new Connection(rpcUrl, 'confirmed');
-      const mintInfo = await rpcConn.getParsedAccountInfo(bagsMint);
+      const conn = new Connection(rpcUrl, 'confirmed');
+
+      try {
+        await getAccount(conn, platformTokenAccount);
+      } catch {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey,
+            platformTokenAccount,
+            platformWallet,
+            bagsMint,
+          ),
+        );
+      }
+
+      // Fetch mint decimals
+      const mintInfo = await conn.getParsedAccountInfo(bagsMint);
       const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9;
       const amount = BigInt(TOKEN_AMOUNT) * BigInt(10 ** decimals);
 
-      // Check if platform token account exists, create if not
-      let needsCreateAta = false;
-      try {
-        await getAccount(rpcConn, platformTokenAccount);
-      } catch {
-        needsCreateAta = true;
-      }
+      transaction.add(
+        createTransferInstruction(
+          userTokenAccount,
+          platformTokenAccount,
+          publicKey,
+          amount,
+          [],
+          TOKEN_PROGRAM_ID,
+        ),
+      );
 
-      let lastError: unknown = null;
+      transaction.feePayer = publicKey;
 
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        const url = attempt === 0 ? rpcUrl : getRpcUrl();
-        const conn = attempt === 0 ? rpcConn : new Connection(url, 'confirmed');
+      // sendTransaction gets fresh blockhash right before sending
+      const signature = await sendTransaction(transaction, conn, { skipPreflight: true });
 
-        try {
-          const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('confirmed');
+      // Wait for confirmation by polling signature status
+      await waitForConfirmation(conn, signature);
 
-          const transaction = new Transaction({
-            feePayer: publicKey,
-            blockhash,
-            lastValidBlockHeight,
-          });
-
-          // Create ATA for platform wallet if it doesn't exist
-          if (needsCreateAta) {
-            transaction.add(
-              createAssociatedTokenAccountInstruction(
-                publicKey,
-                platformTokenAccount,
-                platformWallet,
-                bagsMint,
-              ),
-            );
-          }
-
-          transaction.add(
-            createTransferInstruction(
-              userTokenAccount,
-              platformTokenAccount,
-              publicKey,
-              amount,
-              [],
-              TOKEN_PROGRAM_ID,
-            ),
-          );
-
-          const signature = await sendTransaction(transaction, conn);
-
-          await conn.confirmTransaction({
-            signature,
-            blockhash,
-            lastValidBlockHeight,
-          }, 'confirmed');
-
-          markRpcOk(url);
-          onPaymentComplete(signature);
-          return;
-        } catch (err: unknown) {
-          lastError = err;
-          if (isRpcError(err)) {
-            markRpcFailed(url);
-            continue;
-          }
-          throw err;
-        }
-      }
-
-      throw lastError;
+      markRpcOk(rpcUrl);
+      onPaymentComplete(signature);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Payment failed';
       setError(message);
