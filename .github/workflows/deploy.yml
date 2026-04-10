@@ -29,8 +29,14 @@ jobs:
             BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}
             PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}
             EOF
-            docker compose down || true
+            # Use docker compose v2 plugin or fallback to docker-compose v1
+            if docker compose version &>/dev/null; then
+              DC="docker compose"
+            else
+              DC="docker-compose"
+            fi
+            $DC down || true
             sleep 2
-            docker compose up -d --build
+            $DC up -d --build
             sleep 5
-            docker compose ps
+            $DC ps
