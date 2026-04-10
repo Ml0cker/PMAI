@@ -98,7 +98,7 @@ export function PredictionTrigger({ market }: PredictionTriggerProps) {
             <PaymentButton
               marketId={market.id}
               onPaymentComplete={handlePaymentComplete}
-              disabled={status === 'paying'}
+              disabled={false}
             />
           ) : (
             <div className="rounded-lg border border-accent-yellow/30 bg-bg-tertiary p-4 text-center">
