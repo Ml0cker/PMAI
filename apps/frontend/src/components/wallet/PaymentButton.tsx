@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction, Connection } from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
   createTransferInstruction,
@@ -10,9 +10,19 @@ import {
 } from '@solana/spl-token';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { getRpcUrl, markRpcFailed, markRpcOk } from '@/lib/rpcPool';
 
 const TOKEN_AMOUNT = 1;
 const TOKEN_DECIMALS = 6;
+const MAX_RETRIES = 3;
+
+function isRpcError(err: unknown): boolean {
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    return msg.includes('403') || msg.includes('429') || msg.includes('forbidden') || msg.includes('rate');
+  }
+  return false;
+}
 
 interface PaymentButtonProps {
   marketId: string;
@@ -57,24 +67,46 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
         TOKEN_PROGRAM_ID,
       );
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      let lastError: unknown = null;
 
-      const transaction = new Transaction({
-        feePayer: publicKey,
-        blockhash,
-        lastValidBlockHeight,
-      });
-      transaction.add(transferIx);
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        // Use pool RPC for blockhash — try different endpoint on each retry
+        const rpcUrl = getRpcUrl();
+        const rpcConn = new Connection(rpcUrl, 'confirmed');
 
-      const signature = await sendTransaction(transaction, connection);
+        try {
+          const { blockhash, lastValidBlockHeight } = await rpcConn.getLatestBlockhash('confirmed');
 
-      await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      }, 'confirmed');
+          const transaction = new Transaction({
+            feePayer: publicKey,
+            blockhash,
+            lastValidBlockHeight,
+          });
+          transaction.add(transferIx);
 
-      onPaymentComplete(signature);
+          // sendTransaction uses the wallet adapter's connection
+          const signature = await sendTransaction(transaction, connection);
+
+          await connection.confirmTransaction({
+            signature,
+            blockhash,
+            lastValidBlockHeight,
+          }, 'confirmed');
+
+          markRpcOk(rpcUrl);
+          onPaymentComplete(signature);
+          return;
+        } catch (err: unknown) {
+          lastError = err;
+          if (isRpcError(err)) {
+            markRpcFailed(rpcUrl);
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      throw lastError;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Payment failed';
       setError(message);
