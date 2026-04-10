@@ -16,12 +16,11 @@ interface PredictionTriggerProps {
   market: Market;
 }
 
-const TOKEN_COST = 1; // 1 BAGS token per prediction
+const TOKEN_COST = 1;
 
 export function PredictionTrigger({ market }: PredictionTriggerProps) {
   const { connected, publicKey } = useWallet();
-  const [status, setStatus] = useState<'idle' | 'paying' | 'pending' | 'completed' | 'error'>('idle');
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [status, setStatus] = useState<'idle' | 'pending' | 'completed' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<{ prediction: string; confidence: number; reasoning: string[] } | null>(null);
 
@@ -34,6 +33,7 @@ export function PredictionTrigger({ market }: PredictionTriggerProps) {
       const response = await apiClient.post<{
         id: string;
         status: string;
+        prediction?: { prediction: string; confidence: number; reasoning: string[] };
         message: string;
       }>('/predictions/trigger', {
         marketId: market.id,
@@ -42,44 +42,15 @@ export function PredictionTrigger({ market }: PredictionTriggerProps) {
         tokenAmount: TOKEN_COST.toString(),
       });
 
-      setRequestId(response.id);
-
-      // Poll for prediction result
-      const pollInterval = setInterval(async () => {
-        try {
-          const predictionData = await apiClient.get<{
-            id: string;
-            status: string;
-            prediction?: { prediction: string; confidence: number; reasoning: string[] };
-          }>(`/predictions/request/${response.id}`);
-
-          if (predictionData.status === 'completed' && predictionData.prediction) {
-            clearInterval(pollInterval);
-            setPrediction(predictionData.prediction);
-            setStatus('completed');
-          } else if (predictionData.status === 'failed') {
-            clearInterval(pollInterval);
-            setStatus('error');
-            setErrorMsg('Prediction generation failed');
-          }
-        } catch (err) {
-          clearInterval(pollInterval);
-          setStatus('error');
-          setErrorMsg('Failed to fetch prediction result');
-        }
-      }, 3000);
-
-      // Timeout after 2 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (status === 'pending') {
-          setStatus('error');
-          setErrorMsg('Prediction timed out');
-        }
-      }, 120000);
-
+      if (response.prediction) {
+        setPrediction(response.prediction);
+        setStatus('completed');
+      } else {
+        setStatus('error');
+        setErrorMsg(response.message || 'Prediction not returned');
+      }
     } catch (err: unknown) {
-      const error = err as { status?: number; code?: string; message?: string };
+      const error = err as { message?: string };
       setStatus('error');
       setErrorMsg(error?.message || 'Prediction request failed');
     }
@@ -134,7 +105,7 @@ export function PredictionTrigger({ market }: PredictionTriggerProps) {
             </ul>
           </div>
           <button
-            onClick={() => { setStatus('idle'); setPrediction(null); setRequestId(null); }}
+            onClick={() => { setStatus('idle'); setPrediction(null); }}
             className="w-full rounded-lg bg-bg-tertiary border border-border px-4 py-2 text-xs font-medium text-text-secondary transition-all hover:bg-bg-secondary hover:text-text-primary"
           >
             Generate Another
