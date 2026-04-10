@@ -1,9 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddressSync,
+  createTransferInstruction,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+} from '@solana/spl-token';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+
+const TOKEN_AMOUNT = 1;
+const TOKEN_DECIMALS = 6;
 
 interface PaymentButtonProps {
   marketId: string;
@@ -12,7 +22,8 @@ interface PaymentButtonProps {
 }
 
 export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProps) {
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection();
   const [isPaying, setIsPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,12 +34,69 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
     setError(null);
 
     try {
-      // TODO: Replace with real Bags.fm SDK payment when integrated.
-      // For now simulate payment — 1.5s delay to mimic transaction.
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const bagsMintStr = process.env.NEXT_PUBLIC_BAGS_MINT;
+      const platformWalletStr = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
 
-      const fakeSignature = `demo_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      onPaymentComplete(fakeSignature);
+      if (!bagsMintStr || !platformWalletStr) {
+        throw new Error('Payment not configured. Missing token addresses.');
+      }
+
+      const bagsMint = new PublicKey(bagsMintStr);
+      const platformWallet = new PublicKey(platformWalletStr);
+
+      // Try both Token and Token-2022 program IDs
+      let userTokenAccount: PublicKey | undefined;
+      let platformTokenAccount: PublicKey | undefined;
+      let tokenProgram = TOKEN_PROGRAM_ID;
+
+      for (const programId of [TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID]) {
+        try {
+          const userAta = getAssociatedTokenAddressSync(bagsMint, publicKey, false, programId);
+          const platformAta = getAssociatedTokenAddressSync(bagsMint, platformWallet, false, programId);
+          // Verify user token account exists
+          await connection.getTokenAccountBalance(userAta);
+          userTokenAccount = userAta;
+          platformTokenAccount = platformAta;
+          tokenProgram = programId;
+          break;
+        } catch {
+          continue;
+        }
+      }
+
+      if (!userTokenAccount || !platformTokenAccount) {
+        throw new Error('BAGS token account not found. Make sure you have BAGS tokens.');
+      }
+
+      const amount = TOKEN_AMOUNT * Math.pow(10, TOKEN_DECIMALS);
+
+      const transferIx = createTransferInstruction(
+        userTokenAccount,
+        platformTokenAccount,
+        publicKey,
+        amount,
+        [],
+        tokenProgram,
+      );
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+
+      const transaction = new Transaction({
+        feePayer: publicKey,
+        blockhash,
+        lastValidBlockHeight,
+      });
+      transaction.add(transferIx);
+
+      const signature = await sendTransaction(transaction, connection);
+
+      await connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      }, 'confirmed');
+
+      onPaymentComplete(signature);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Payment failed';
       setError(message);
@@ -52,7 +120,7 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
             Processing...
           </span>
         ) : (
-          <>Pay with Bags (via Bags.fm)</>
+          <>Pay 1 BAGS</>
         )}
       </Button>
 
