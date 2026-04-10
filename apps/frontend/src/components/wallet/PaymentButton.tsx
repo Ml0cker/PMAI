@@ -5,7 +5,9 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, Connection } from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
   createTransferInstruction,
+  getAccount,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +15,6 @@ import { Spinner } from '@/components/ui/Spinner';
 import { getRpcUrl, markRpcFailed, markRpcOk } from '@/lib/rpcPool';
 
 const TOKEN_AMOUNT = 1;
-const TOKEN_DECIMALS = 6;
 const MAX_RETRIES = 3;
 
 function isRpcError(err: unknown): boolean {
@@ -56,35 +57,59 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
       const userTokenAccount = getAssociatedTokenAddressSync(bagsMint, publicKey);
       const platformTokenAccount = getAssociatedTokenAddressSync(bagsMint, platformWallet);
 
-      const amount = BigInt(TOKEN_AMOUNT * Math.pow(10, TOKEN_DECIMALS));
+      // Fetch mint info to get correct decimals
+      const rpcUrl = getRpcUrl();
+      const rpcConn = new Connection(rpcUrl, 'confirmed');
+      const mintInfo = await rpcConn.getParsedAccountInfo(bagsMint);
+      const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9;
+      const amount = BigInt(TOKEN_AMOUNT) * BigInt(10 ** decimals);
 
-      const transferIx = createTransferInstruction(
-        userTokenAccount,
-        platformTokenAccount,
-        publicKey,
-        amount,
-        [],
-        TOKEN_PROGRAM_ID,
-      );
+      // Check if platform token account exists, create if not
+      let needsCreateAta = false;
+      try {
+        await getAccount(rpcConn, platformTokenAccount);
+      } catch {
+        needsCreateAta = true;
+      }
 
       let lastError: unknown = null;
 
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        // Use pool RPC for blockhash — try different endpoint on each retry
-        const rpcUrl = getRpcUrl();
-        const rpcConn = new Connection(rpcUrl, 'confirmed');
+        const url = attempt === 0 ? rpcUrl : getRpcUrl();
+        const conn = attempt === 0 ? rpcConn : new Connection(url, 'confirmed');
 
         try {
-          const { blockhash, lastValidBlockHeight } = await rpcConn.getLatestBlockhash('confirmed');
+          const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('confirmed');
 
           const transaction = new Transaction({
             feePayer: publicKey,
             blockhash,
             lastValidBlockHeight,
           });
-          transaction.add(transferIx);
 
-          // sendTransaction uses the wallet adapter's connection
+          // Create ATA for platform wallet if it doesn't exist
+          if (needsCreateAta) {
+            transaction.add(
+              createAssociatedTokenAccountInstruction(
+                publicKey,
+                platformTokenAccount,
+                platformWallet,
+                bagsMint,
+              ),
+            );
+          }
+
+          transaction.add(
+            createTransferInstruction(
+              userTokenAccount,
+              platformTokenAccount,
+              publicKey,
+              amount,
+              [],
+              TOKEN_PROGRAM_ID,
+            ),
+          );
+
           const signature = await sendTransaction(transaction, connection);
 
           await connection.confirmTransaction({
@@ -93,13 +118,13 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
             lastValidBlockHeight,
           }, 'confirmed');
 
-          markRpcOk(rpcUrl);
+          markRpcOk(url);
           onPaymentComplete(signature);
           return;
         } catch (err: unknown) {
           lastError = err;
           if (isRpcError(err)) {
-            markRpcFailed(rpcUrl);
+            markRpcFailed(url);
             continue;
           }
           throw err;
