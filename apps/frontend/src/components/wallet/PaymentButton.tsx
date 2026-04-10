@@ -110,9 +110,9 @@ export function PaymentButton({ onPaymentComplete, disabled }: PaymentButtonProp
             ),
           );
 
-          const signature = await sendTransaction(transaction, connection);
+          const signature = await sendTransaction(transaction, conn);
 
-          await connection.confirmTransaction({
+          await conn.confirmTransaction({
             signature,
             blockhash,
             lastValidBlockHeight,
