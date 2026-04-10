@@ -36,10 +36,21 @@ export function PaymentButton({ marketId, onPaymentComplete, disabled }: Payment
     try {
       // In production, this would use Bags.fm SDK to create swap + burn transaction.
       // For now, construct a token transfer as placeholder.
-      const bagsMint = new PublicKey(process.env.NEXT_PUBLIC_BAGS_MINT || BAGS_MINT_FALLBACK || '');
-      const platformWallet = new PublicKey(process.env.NEXT_PUBLIC_PLATFORM_WALLET || '');
+      const bagsMintStr = process.env.NEXT_PUBLIC_BAGS_MINT || BAGS_MINT_FALLBACK;
+      const platformWalletStr = process.env.NEXT_PUBLIC_PLATFORM_WALLET || '';
 
-      if (!bagsMint.toBase58() || bagsMint.toBase58() === '11111111111111111111111111111111') {
+      // If mint or platform wallet not configured — simulate payment for demo
+      if (!bagsMintStr || !platformWalletStr) {
+        const fakeSignature = `demo_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        onPaymentComplete(fakeSignature);
+        setIsPaying(false);
+        return;
+      }
+
+      const bagsMint = new PublicKey(bagsMintStr);
+      const platformWallet = new PublicKey(platformWalletStr);
+
+      if (bagsMint.toBase58() === '11111111111111111111111111111111') {
         // No mint configured - simulate payment for demo
         const fakeSignature = `demo_${Date.now()}_${Math.random().toString(36).slice(2)}`;
         onPaymentComplete(fakeSignature);
