@@ -21,8 +21,7 @@ jobs:
             git pull origin main || true
             cd docker
 
-            # Write .env — secrets are already substituted by GitHub Actions,
-            # use printf to avoid shell expansion of special chars in values
+            # Write .env file
             printf '%s\n' \
               "POSTGRES_USER=pmai" \
               "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" \
@@ -34,21 +33,29 @@ jobs:
               > .env
 
             echo "=== .env keys ==="
-            sed 's/=.*/=***/' .env
+            cut -d= -f1 .env
 
-            # Verify OPENROUTER_API_KEY is present
-            OR_KEY_LENGTH=$(grep -o 'OPENROUTER_API_KEY=.*' .env | sed 's/OPENROUTER_API_KEY=//' | wc -c)
-            echo "OPENROUTER_API_KEY length: $OR_KEY_LENGTH"
-
-            echo "=== Starting deploy ==="
             # Use docker compose v2 plugin or fallback to docker-compose v1
             if docker compose version &>/dev/null; then
               DC="docker compose"
             else
               DC="docker-compose"
             fi
+
             $DC down || true
             sleep 2
+
+            # Pass secrets as shell env vars so docker-compose ${VAR} substitution works
+            export OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
+            export SOLANA_RPC_URL="${{ secrets.SOLANA_RPC_URL }}"
+            export BAGS_MINT_ADDRESS="${{ secrets.BAGS_MINT_ADDRESS }}"
+            export PLATFORM_WALLET_ADDRESS="${{ secrets.PLATFORM_WALLET_ADDRESS }}"
+
             $DC up -d --build
-            sleep 5
+            sleep 10
+
+            echo "=== Container status ==="
             $DC ps
+
+            echo "=== Verify API container has OPENROUTER_API_KEY ==="
+            docker exec pmai-api printenv OPENROUTER_API_KEY 2>/dev/null | awk '{print "length:", length, "prefix:", substr($0,1,10)}' || echo "ERROR: key not found in container"
