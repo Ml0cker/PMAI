@@ -42,8 +42,8 @@ jobs:
             echo "=== .env keys ==="
             cut -d= -f1 .env
 
-            # Login to GHCR to pull private images (if needed later)
-            # echo "${{ secrets.CLASSIC_TOKEN }}" | docker login ghcr.io -u Ml0cker --password-stdin 2>/dev/null || true
+            # Login to GHCR to pull images
+            echo "${{ secrets.CLASSIC_TOKEN }}" | docker login ghcr.io -u Ml0cker --password-stdin 2>/dev/null || true
 
             # Pull latest images
             echo "=== Pulling images ==="
