@@ -57,6 +57,21 @@ jobs:
             echo "=== Cleaning Docker to free disk space ==="
             docker system prune -af --volumes 2>/dev/null || true
 
+            echo "=== Disk space after prune ==="
+            df -h /
+
+            # If still low on space, remove unused system packages
+            if [ "$(df / | tail -1 | awk '{print $4}')" -lt 500000 ]; then
+              echo "=== Very low disk, aggressive cleanup ==="
+              apt-get clean 2>/dev/null || true
+              rm -rf /tmp/* 2>/dev/null || true
+              journalctl --vacuum-time=1s 2>/dev/null || true
+              docker builder prune -af 2>/dev/null || true
+            fi
+
+            echo "=== Disk space after cleanup ==="
+            df -h /
+
             sleep 2
             $DC up -d --build
 
