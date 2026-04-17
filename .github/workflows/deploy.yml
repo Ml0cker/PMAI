@@ -53,6 +53,10 @@ jobs:
             fi
 
             $DC down || true
+
+            echo "=== Cleaning Docker to free disk space ==="
+            docker system prune -af --volumes 2>/dev/null || true
+
             sleep 2
             $DC up -d --build
 
