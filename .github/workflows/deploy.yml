@@ -17,9 +17,18 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           command_timeout: 25m
           script: |
-            cd /opt/pmai
-            git pull origin main || true
-            cd docker
+            # Clone repo if not exists, otherwise pull latest
+            if [ ! -d /opt/pmai/.git ]; then
+              echo "=== Cloning repository ==="
+              rm -rf /opt/pmai
+              git clone https://github.com/Ml0cker/PMAI.git /opt/pmai
+            else
+              echo "=== Pulling latest ==="
+              cd /opt/pmai
+              git pull origin main || true
+            fi
+
+            cd /opt/pmai/docker
 
             # Write .env file — one var per line to avoid any shell expansion
             echo "POSTGRES_USER=pmai" > .env
