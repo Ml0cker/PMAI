@@ -43,7 +43,7 @@ jobs:
             cut -d= -f1 .env
 
             # Login to GHCR to pull images
-            echo "${{ secrets.CLASSIC_TOKEN }}" | docker login ghcr.io -u Ml0cker --password-stdin 2>/dev/null || true
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u Ml0cker --password-stdin 2>&1 || echo "GHCR login failed"
 
             # Pull latest images
             echo "=== Pulling images ==="
