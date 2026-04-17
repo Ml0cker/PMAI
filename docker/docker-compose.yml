@@ -102,6 +102,8 @@ services:
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
       LOG_LEVEL: info
+    profiles:
+      - workers
     deploy:
       resources:
         limits:
@@ -125,6 +127,8 @@ services:
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
       LOG_LEVEL: info
+    profiles:
+      - workers
     deploy:
       resources:
         limits:
@@ -151,6 +155,8 @@ services:
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
       BAGS_MINT_ADDRESS: ${BAGS_MINT_ADDRESS}
       PLATFORM_WALLET_ADDRESS: ${PLATFORM_WALLET_ADDRESS}
+    profiles:
+      - workers
     deploy:
       resources:
         limits:
