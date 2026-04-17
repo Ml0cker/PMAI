@@ -21,19 +21,20 @@ jobs:
             git pull origin main || true
             cd docker
 
-            # Write .env file
-            printf '%s\n' \
-              "POSTGRES_USER=pmai" \
-              "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" \
-              "POSTGRES_DB=pmai" \
-              "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" \
-              "SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}" \
-              "BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}" \
-              "PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}" \
-              > .env
+            # Write .env file — one var per line to avoid any shell expansion
+            echo "POSTGRES_USER=pmai" > .env
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+            echo "POSTGRES_DB=pmai" >> .env
+            echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+            echo "SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}" >> .env
+            echo "BAGS_MINT_ADDRESS=${{ secrets.BAGS_MINT_ADDRESS }}" >> .env
+            echo "PLATFORM_WALLET_ADDRESS=${{ secrets.PLATFORM_WALLET_ADDRESS }}" >> .env
 
             echo "=== .env keys ==="
             cut -d= -f1 .env
+
+            echo "=== OPENROUTER_API_KEY line in .env ==="
+            grep OPENROUTER .env | awk -F= '{print "key present, value length:", length($2)}'
 
             # Use docker compose v2 plugin or fallback to docker-compose v1
             if docker compose version &>/dev/null; then
@@ -44,18 +45,14 @@ jobs:
 
             $DC down || true
             sleep 2
-
-            # Pass secrets as shell env vars so docker-compose ${VAR} substitution works
-            export OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
-            export SOLANA_RPC_URL="${{ secrets.SOLANA_RPC_URL }}"
-            export BAGS_MINT_ADDRESS="${{ secrets.BAGS_MINT_ADDRESS }}"
-            export PLATFORM_WALLET_ADDRESS="${{ secrets.PLATFORM_WALLET_ADDRESS }}"
-
             $DC up -d --build
             sleep 10
 
             echo "=== Container status ==="
             $DC ps
 
-            echo "=== Verify API container has OPENROUTER_API_KEY ==="
-            docker exec pmai-api printenv OPENROUTER_API_KEY 2>/dev/null | awk '{print "length:", length, "prefix:", substr($0,1,10)}' || echo "ERROR: key not found in container"
+            echo "=== API container env check ==="
+            docker exec pmai-api sh -c 'echo "OPENROUTER_API_KEY length: $(printenv OPENROUTER_API_KEY | wc -c)"' 2>/dev/null || echo "Container not ready"
+
+            echo "=== API health check ==="
+            curl -s http://localhost:4000/api/predictions/debug/env 2>/dev/null || echo "API not responding yet"
