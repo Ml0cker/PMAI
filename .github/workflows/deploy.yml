@@ -46,13 +46,22 @@ jobs:
             $DC down || true
             sleep 2
             $DC up -d --build
-            sleep 10
+
+            echo "=== Waiting for containers to start ==="
+            for i in $(seq 1 12); do
+              sleep 5
+              if docker exec pmai-api printenv NODE_ENV 2>/dev/null; then
+                echo "API container ready after $((i*5))s"
+                break
+              fi
+              echo "Waiting... ($((i*5))s)"
+            done
 
             echo "=== Container status ==="
             $DC ps
 
             echo "=== API container env check ==="
-            docker exec pmai-api sh -c 'echo "OPENROUTER_API_KEY length: $(printenv OPENROUTER_API_KEY | wc -c)"' 2>/dev/null || echo "Container not ready"
+            docker exec pmai-api printenv OPENROUTER_API_KEY 2>/dev/null | awk '{print "length:", length, "prefix:", substr($0,1,10)}' || echo "KEY NOT FOUND"
 
             echo "=== API health check ==="
             curl -s http://localhost:4000/api/predictions/debug/env 2>/dev/null || echo "API not responding yet"
