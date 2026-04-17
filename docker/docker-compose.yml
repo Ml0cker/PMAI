@@ -41,9 +41,7 @@ services:
     # Not exposed to the internet
 
   api:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.api
+    image: ghcr.io/ml0cker/pmai-api:latest
     container_name: pmai-api
     restart: unless-stopped
     expose:
@@ -67,13 +65,7 @@ services:
         condition: service_healthy
 
   frontend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.frontend
-      args:
-        NEXT_PUBLIC_BAGS_MINT: ${BAGS_MINT_ADDRESS:-}
-        NEXT_PUBLIC_PLATFORM_WALLET: ${PLATFORM_WALLET_ADDRESS:-}
-        NEXT_PUBLIC_SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+    image: ghcr.io/ml0cker/pmai-frontend:latest
     container_name: pmai-frontend
     restart: unless-stopped
     expose:

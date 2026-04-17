@@ -30,7 +30,7 @@ jobs:
 
             cd /opt/pmai/docker
 
-            # Write .env file — one var per line to avoid any shell expansion
+            # Write .env file
             echo "POSTGRES_USER=pmai" > .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_DB=pmai" >> .env
@@ -42,8 +42,13 @@ jobs:
             echo "=== .env keys ==="
             cut -d= -f1 .env
 
-            echo "=== OPENROUTER_API_KEY line in .env ==="
-            grep OPENROUTER .env | awk -F= '{print "key present, value length:", length($2)}'
+            # Login to GHCR to pull private images (if needed later)
+            # echo "${{ secrets.CLASSIC_TOKEN }}" | docker login ghcr.io -u Ml0cker --password-stdin 2>/dev/null || true
+
+            # Pull latest images
+            echo "=== Pulling images ==="
+            docker pull ghcr.io/ml0cker/pmai-api:latest
+            docker pull ghcr.io/ml0cker/pmai-frontend:latest
 
             # Use docker compose v2 plugin or fallback to docker-compose v1
             if docker compose version &>/dev/null; then
@@ -53,29 +58,10 @@ jobs:
             fi
 
             $DC down || true
-
-            echo "=== Cleaning Docker to free disk space ==="
-            docker system prune -af --volumes 2>/dev/null || true
-
-            echo "=== Disk space after prune ==="
-            df -h /
-
-            # If still low on space, remove unused system packages
-            if [ "$(df / | tail -1 | awk '{print $4}')" -lt 500000 ]; then
-              echo "=== Very low disk, aggressive cleanup ==="
-              apt-get clean 2>/dev/null || true
-              rm -rf /tmp/* 2>/dev/null || true
-              journalctl --vacuum-time=1s 2>/dev/null || true
-              docker builder prune -af 2>/dev/null || true
-            fi
-
-            echo "=== Disk space after cleanup ==="
-            df -h /
-
             sleep 2
-            $DC up -d --build
+            $DC up -d
 
-            echo "=== Waiting for containers to start ==="
+            echo "=== Waiting for containers ==="
             for i in $(seq 1 12); do
               sleep 5
               if docker exec pmai-api printenv NODE_ENV 2>/dev/null; then
@@ -88,7 +74,7 @@ jobs:
             echo "=== Container status ==="
             $DC ps
 
-            echo "=== API container env check ==="
+            echo "=== API env check ==="
             docker exec pmai-api printenv OPENROUTER_API_KEY 2>/dev/null | awk '{print "length:", length, "prefix:", substr($0,1,10)}' || echo "KEY NOT FOUND"
 
             echo "=== API health check ==="
